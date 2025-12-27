@@ -63,6 +63,10 @@ body{
 .row{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
 .field-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px}
 label{display:flex; flex-direction:column; gap:6px; font-size:13px; color:var(--muted)}
+label.stacked{gap:4px}
+label.stacked input[type="checkbox"]{width:auto; align-self:flex-start}
+label .inline-inputs{display:flex; gap:6px}
+label .inline-inputs input{width:70px}
 input, select, textarea{border-radius:12px; border:var(--border); padding:10px; background:rgba(255,255,255,.04); color:var(--text); font-size:14px; outline:none}
 textarea{min-height:160px; resize:vertical}
 .btn{border:var(--border); background:linear-gradient(90deg, rgba(96,165,250,.25), rgba(125,211,252,.25)); color:var(--text); padding:10px 12px; border-radius:12px; cursor:pointer; font-weight:700; transition:transform .05s ease, filter .15s ease}
@@ -79,9 +83,11 @@ textarea{min-height:160px; resize:vertical}
 .search input{min-width:220px}
 .bracketWrap{position:relative; border-top:var(--border); padding:12px 12px 18px; overflow:hidden}
 .bracket{display:flex; gap:12px; overflow:auto; padding:6px; transform-origin:0 0}
+.bracket--list{flex-direction:column}
 .round{min-width:260px; background:rgba(255,255,255,.03); border:var(--border); border-radius:12px; padding:10px; position:relative}
 .round h3{margin:0 0 8px; font-size:12px; color:var(--muted); letter-spacing:.3px}
 .match{border:var(--border); background:rgba(255,255,255,.05); border-radius:12px; padding:8px; margin-bottom:10px; position:relative}
+.match--list{margin-bottom:8px}
 .match[data-status="completed"]{border-color:rgba(52,211,153,.35)}
 .match__meta{display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:6px; font-size:12px; color:var(--muted)}
 .slot{display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:6px; padding:8px; border-radius:10px; border:var(--border); background:rgba(2,6,23,.35); margin-bottom:6px}
@@ -104,6 +110,14 @@ textarea{min-height:160px; resize:vertical}
 .empty{padding:16px; text-align:center; color:var(--muted)}
 .toast{position:fixed; left:50%; transform:translateX(-50%); bottom:18px; padding:10px 12px; border-radius:12px; background:rgba(13,20,38,.95); border:var(--border); color:var(--text); opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease; z-index:20}
 .toast.show{opacity:1; transform:translateX(-50%) translateY(-4px)}
+
+.standings{padding:12px 14px; border-top:var(--border)}
+.standings table{width:100%; border-collapse:collapse; font-size:13px}
+.standings th, .standings td{padding:6px 8px; text-align:left; border-bottom:var(--border)}
+.standings th{color:var(--muted); font-weight:700; letter-spacing:.2px}
+.standings .rank{width:48px; text-align:center}
+.standings .muted{color:var(--muted)}
+.standings .empty-msg{color:var(--muted); font-size:13px}
 
 @media(max-width:840px){
   .hero{flex-direction:column}

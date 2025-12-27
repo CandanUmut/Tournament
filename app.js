@@ -1,12 +1,13 @@
 /*
 Developer Notes
-- Data model: state stores participants [{id,name,seed}], matches [{id,round,index,a,b,winner,status,time,location,notes,bestOf}], settings (title, format, seeding, bestOf, byeMode, thirdPlace, showSeeds, defaults, compact, zoom, version).
+- Data model: state stores participants [{id,name,seed}], matches [{id,round,index,a,b,winner,status,time,location,notes,bestOf}], settings (title, format, seeding, bestOf, byeMode, thirdPlace, showSeeds, defaults, compact, zoom, version, points, doubleRound).
 - Bracket computation: buildSingleElim in bracket.js pads to next power of two, adds BYEs, auto-advances BYE winners, then connects later rounds to prior winners. propagate() normalizes downstream winners when clears happen.
+- Round robin: buildRoundRobin uses a circle method to create balanced rounds (adds BYE when odd), with optional double leg. computeStandings tallies W/D/L, points, scored/against for the live table.
 - Supabase sync: optional. configure(url,key) sets client; createRoom/joinRoom manage room_code. syncState debounces updates to the rooms table (last-write-wins). When supabase is missing, UI controls remain inert.
 */
 import { qs, qsa, sanitizeNames, sampleNames, toast, applyTheme, coinFlip, downloadJson, copyText, clone, debounce, formatDate } from './utils.js';
 import { saveState, loadState, clearState } from './storage.js';
-import { createParticipants, buildSingleElim, applyWinner, clearMatch, clearAll, updateScore, describeRound, formatMatchesByRound, normalizeLinks } from './bracket.js';
+import { createParticipants, buildSingleElim, buildRoundRobin, computeStandings, applyWinner, clearMatch, clearAll, updateScore, describeRound, formatMatchesByRound, normalizeLinks } from './bracket.js';
 import { exportPng, exportPdf } from './share.js';
 import * as supa from './supabase.js';
 
@@ -16,6 +17,7 @@ const defaults = {
   title:'', format:'single', seeding:'as_entered', bestOf:1, thirdPlace:false, byeMode:'auto', showSeeds:true,
   names:[], participants:[], matches:[], rounds:0, version:1, compact:false, zoom:1,
   defaults:{ location:'', notes:'', time:'' },
+  points:{ win:3, draw:1, loss:0 }, doubleRound:false,
 };
 
 let state = clone(defaults);
@@ -47,17 +49,32 @@ const redo = () => {
 const buildStateFromInputs = () => {
   const names = sanitizeNames($('#names').value);
   const participants = createParticipants(names, $('#tSeeding').value);
-  const structure = buildSingleElim(participants, {
+  const format = $('#tFormat').value;
+  const common = {
     bestOf: Number($('#tBestOf').value),
-    thirdPlace: $('#tThirdPlace').value==='on',
-    byeMode: $('#tBye').value,
     defaults: { location: $('#defaultLocation').value, notes: $('#defaultNotes').value }
-  });
-  normalizeLinks(structure.matches);
+  };
+  const roundOpts = {
+    ...common,
+    doubleRound: $('#tDoubleRound').checked,
+  };
+  const structure = format==='round'
+    ? buildRoundRobin(participants, roundOpts)
+    : buildSingleElim(participants, {
+        ...common,
+        thirdPlace: $('#tThirdPlace').value==='on',
+        byeMode: $('#tBye').value,
+      });
+  if(format==='single') normalizeLinks(structure.matches);
+  const points = {
+    win: Number($('#pointsWin').value || 0),
+    draw: Number($('#pointsDraw').value || 0),
+    loss: Number($('#pointsLoss').value || 0),
+  };
   state = {
     ...state,
     title: $('#tTitle').value || 'Untitled event',
-    format: $('#tFormat').value,
+    format,
     seeding: $('#tSeeding').value,
     bestOf: Number($('#tBestOf').value),
     thirdPlace: $('#tThirdPlace').value==='on',
@@ -68,6 +85,8 @@ const buildStateFromInputs = () => {
     matches: structure.matches,
     rounds: structure.rounds,
     version: (state.version||1)+1,
+    points,
+    doubleRound: $('#tDoubleRound').checked,
   };
   pushHistory();
   renderAll();
@@ -80,12 +99,24 @@ const renderStats = () => {
   $('#statMatches').textContent = state.matches.length;
 };
 
+
+
 const renderBracket = () => {
   const container = $('#bracket');
   container.innerHTML='';
   $('#emptyState').style.display = state.matches.length ? 'none' : 'block';
   container.style.transform = `scale(${state.zoom || 1})`;
   if(!state.matches.length) return;
+  if(state.format === 'round'){
+    container.classList.add('bracket--list');
+    renderRoundRobin(container);
+  } else {
+    container.classList.remove('bracket--list');
+    renderSingle(container);
+  }
+};
+
+const renderSingle = (container) => {
   const grouped = formatMatchesByRound(state.matches);
   grouped.forEach(([roundNum, matches])=>{
     const roundEl = document.createElement('div');
@@ -126,7 +157,7 @@ const renderBracket = () => {
         const winBtn = document.createElement('button'); winBtn.className='win'; winBtn.textContent='Win';
         winBtn.addEventListener('click', ()=>{ pushHistory(); applyWinner(state.matches, m.id, side); saveState(state); renderAll(); });
         const clearBtn = document.createElement('button'); clearBtn.className='clear'; clearBtn.textContent='Clear';
-        clearBtn.addEventListener('click', ()=>{ pushHistory(); clearMatch(state.matches, m.id); saveState(state); renderAll(); });
+        clearBtn.addEventListener('click', ()=>{ pushHistory(); clearMatch(state.matches, m.id); saveState(state); renderAll();});
         controls.append(winBtn, clearBtn);
         el.append(score, controls);
         return el;
@@ -152,6 +183,96 @@ const renderBracket = () => {
   });
 };
 
+const renderRoundRobin = (container) => {
+  const grouped = formatMatchesByRound(state.matches);
+  grouped.forEach(([roundNum, matches])=>{
+    const roundEl = document.createElement('div');
+    roundEl.className='round round--list';
+    const heading = document.createElement('h3');
+    heading.textContent = `Round ${roundNum}`;
+    roundEl.appendChild(heading);
+    matches.forEach(m=>{
+      const match = document.createElement('div');
+      match.className='match match--list';
+      match.dataset.id=m.id;
+      match.dataset.status=m.status;
+      const meta = document.createElement('div');
+      meta.className='match__meta';
+      const status = document.createElement('span');
+      status.className='status ' + (m.status==='completed'?'complete': m.status==='pending'?'pending':'empty');
+      status.textContent = m.status==='completed'?'Completed': m.status==='pending'?'In progress':'Not started';
+      meta.append(status);
+      const bo = document.createElement('span');
+      bo.textContent = `Bo${m.bestOf || state.bestOf}`;
+      meta.append(bo);
+      match.append(meta);
+
+      const slotEl = (slot, side) => {
+        const row = document.createElement('div');
+        row.className = 'slot';
+        row.innerHTML = `<div><div class="name">${slot?.name||'TBD'}</div>${state.showSeeds && slot?.seed?`<div class="seed">Seed ${slot.seed}</div>`:''}</div>`;
+        if(m.winner===slot?.id) row.classList.add('win');
+        if(m.winner && m.winner!==slot?.id) row.classList.add('lose');
+        const score = document.createElement('input'); score.className='score'; score.type='number'; score.min='0'; score.max='999'; score.value=slot?.score??'';
+        score.addEventListener('change', ()=>{ updateScore(state.matches, m.id, side, score.value ? Number(score.value) : null); saveState(state); });
+        const controls = document.createElement('div'); controls.className='controls';
+        const winBtn = document.createElement('button'); winBtn.className='win'; winBtn.textContent='Win';
+        winBtn.addEventListener('click', ()=>{ pushHistory(); applyWinner(state.matches, m.id, side); saveState(state); renderAll(); });
+        const clearBtn = document.createElement('button'); clearBtn.className='clear'; clearBtn.textContent='Clear';
+        clearBtn.addEventListener('click', ()=>{ pushHistory(); clearMatch(state.matches, m.id); saveState(state); renderAll(); });
+        controls.append(winBtn, clearBtn);
+        row.append(score, controls);
+        return row;
+      };
+
+      match.append(slotEl(m.a,'a'));
+      match.append(slotEl(m.b,'b'));
+
+      const actions = document.createElement('div'); actions.className='match__details match__details--actions';
+      const drawBtn = document.createElement('button'); drawBtn.className='btn ghost'; drawBtn.textContent='Mark draw';
+      drawBtn.addEventListener('click', ()=>{ pushHistory(); m.winner=null; m.draw=true; m.status='completed'; saveState(state); renderAll(); });
+      const coin = document.createElement('button'); coin.textContent='Flip coin'; coin.className='btn ghost';
+      coin.addEventListener('click', ()=>{ toast(`Coin: ${coinFlip()}`); });
+      actions.append(drawBtn, coin);
+      match.append(actions);
+      roundEl.append(match);
+    });
+    container.append(roundEl);
+  });
+};
+
+const renderStandings = () => {
+  const el = $('#standings');
+  if(!el) return;
+  if(state.format !== 'round'){
+    el.style.display='none';
+    return;
+  }
+  el.style.display='block';
+  if(!state.matches.length){
+    el.innerHTML = '<div class="empty-msg">Generate a round robin to see standings.</div>';
+    return;
+  }
+  const standings = computeStandings(state.participants, state.matches, state.points || defaults.points);
+  if(!standings.length){
+    el.innerHTML = '<div class="empty-msg">No completed matches yet.</div>';
+    return;
+  }
+  const rows = standings.map((row,i)=>`
+    <tr>
+      <td class="rank">${i+1}</td>
+      <td>${row.name}</td>
+      <td>${row.played}</td>
+      <td>${row.wins}</td>
+      <td>${row.draws}</td>
+      <td>${row.losses}</td>
+      <td>${row.points}</td>
+      <td class="muted">${row.scored}:${row.conceded}</td>
+    </tr>
+  `).join('');
+  el.innerHTML = `<table aria-label="Standings"> <thead><tr><th class="rank">#</th><th>Participant</th><th>P</th><th>W</th><th>D</th><th>L</th><th>Pts</th><th>Scored</th></tr></thead><tbody>${rows}</tbody></table>`;
+};
+
 const renderInputs = () => {
   $('#tTitle').value = state.title;
   $('#tFormat').value = state.format;
@@ -159,6 +280,10 @@ const renderInputs = () => {
   $('#tBestOf').value = state.bestOf;
   $('#tThirdPlace').value = state.thirdPlace ? 'on' : 'off';
   $('#tBye').value = state.byeMode || 'auto';
+  $('#tDoubleRound').checked = !!state.doubleRound;
+  $('#pointsWin').value = state.points?.win ?? 3;
+  $('#pointsDraw').value = state.points?.draw ?? 1;
+  $('#pointsLoss').value = state.points?.loss ?? 0;
   $('#toggleSeeds').value = state.showSeeds ? 'on' : 'off';
   $('#names').value = state.names.join('\n');
   $('#viewTitle').textContent = state.title || 'Bracket';
@@ -173,6 +298,7 @@ const renderAll = () => {
   renderStats();
   renderInputs();
   renderBracket();
+  renderStandings();
   syncRemote();
 };
 
