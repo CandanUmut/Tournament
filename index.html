@@ -3,1159 +3,228 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tournament Generator (Single File)</title>
-  <style>
-    :root{
-      --bg:#0b0f17; --panel:#111827; --panel2:#0f172a; --text:#e5e7eb; --muted:#94a3b8;
-      --line:#253043; --brand:#60a5fa; --ok:#34d399; --warn:#fbbf24; --bad:#fb7185;
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
-      --radius:16px;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      background: radial-gradient(1200px 800px at 20% 0%, rgba(96,165,250,.18), transparent 45%),
-                  radial-gradient(900px 600px at 90% 10%, rgba(52,211,153,.12), transparent 50%),
-                  var(--bg);
-      color:var(--text);
-    }
-    header{
-      padding:18px 18px 10px;
-      position:sticky; top:0; z-index:5;
-      backdrop-filter: blur(10px);
-      background: linear-gradient(to bottom, rgba(11,15,23,.92), rgba(11,15,23,.65));
-      border-bottom: 1px solid rgba(255,255,255,.06);
-    }
-    .wrap{max-width:1200px; margin:0 auto;}
-    .top{
-      display:flex; gap:12px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap;
-    }
-    h1{margin:0; font-size:18px; letter-spacing:.2px}
-    .subtitle{margin-top:4px; color:var(--muted); font-size:12px; line-height:1.4}
-    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
-    .pill{
-      display:inline-flex; gap:8px; align-items:center;
-      border:1px solid rgba(255,255,255,.09);
-      background: rgba(17,24,39,.65);
-      padding:8px 10px; border-radius:999px;
-      color:var(--muted); font-size:12px;
-    }
-    .pill b{color:var(--text); font-weight:700}
-    main{padding:16px 18px 28px}
-    .grid{
-      display:grid;
-      grid-template-columns: 380px 1fr;
-      gap:14px;
-      align-items:start;
-    }
-    @media (max-width: 980px){
-      .grid{grid-template-columns:1fr}
-    }
-    .card{
-      background: linear-gradient(180deg, rgba(17,24,39,.9), rgba(15,23,42,.85));
-      border:1px solid rgba(255,255,255,.08);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-    .card .hd{
-      padding:14px 14px 10px;
-      border-bottom:1px solid rgba(255,255,255,.06);
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-    }
-    .card .hd h2{margin:0; font-size:14px; color:var(--text)}
-    .card .bd{padding:14px}
-    label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
-    input[type="text"], textarea, select{
-      width:100%;
-      background: rgba(2,6,23,.55);
-      border:1px solid rgba(255,255,255,.10);
-      color: var(--text);
-      border-radius: 12px;
-      padding:10px 11px;
-      outline:none;
-    }
-    textarea{min-height:170px; resize:vertical; line-height:1.25}
-    select{padding:10px 11px}
-    .btn{
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(96,165,250,.12);
-      color: var(--text);
-      padding:10px 12px;
-      border-radius: 12px;
-      cursor:pointer;
-      transition: transform .05s ease, background .15s ease, border-color .15s ease;
-      font-weight:700;
-      font-size:13px;
-    }
-    .btn:hover{background: rgba(96,165,250,.18); border-color: rgba(96,165,250,.35)}
-    .btn:active{transform: translateY(1px)}
-    .btn.secondary{background: rgba(148,163,184,.10)}
-    .btn.secondary:hover{background: rgba(148,163,184,.16); border-color: rgba(148,163,184,.35)}
-    .btn.danger{background: rgba(251,113,133,.12)}
-    .btn.danger:hover{background: rgba(251,113,133,.18); border-color: rgba(251,113,133,.35)}
-    .btn.ok{background: rgba(52,211,153,.12)}
-    .btn.ok:hover{background: rgba(52,211,153,.18); border-color: rgba(52,211,153,.35)}
-    .btn.small{padding:6px 9px; border-radius:10px; font-size:12px}
-    .hint{font-size:12px; color:var(--muted); line-height:1.45}
-    .sep{height:10px}
-    .two{display:grid; grid-template-columns:1fr 1fr; gap:10px}
-    @media(max-width: 520px){.two{grid-template-columns:1fr}}
-    .toolbar{
-      display:flex; gap:10px; flex-wrap:wrap;
-      padding:12px 14px;
-      border-top:1px solid rgba(255,255,255,.06);
-      background: rgba(2,6,23,.25);
-    }
-    .toast{
-      position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: 16px;
-      background: rgba(17,24,39,.95);
-      border:1px solid rgba(255,255,255,.10);
-      box-shadow: var(--shadow);
-      padding:10px 12px;
-      border-radius: 12px;
-      color: var(--text);
-      font-size: 13px;
-      opacity:0;
-      pointer-events:none;
-      transition: opacity .2s ease, transform .2s ease;
-      z-index:10;
-    }
-    .toast.show{opacity:1; transform: translateX(-50%) translateY(-4px)}
-    /* Bracket */
-    .bracketWrap{
-      padding:14px;
-    }
-    .bracketHead{
-      display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;
-      margin-bottom:10px;
-    }
-    .bracketTitle{
-      display:flex; flex-direction:column; gap:2px;
-    }
-    .bracketTitle .name{font-size:14px; font-weight:800}
-    .bracketTitle .meta{font-size:12px; color:var(--muted)}
-    .bracket{
-      display:flex;
-      gap:12px;
-      overflow:auto;
-      padding-bottom:8px;
-      scroll-snap-type: x proximity;
-    }
-    .round{
-      min-width: 260px;
-      scroll-snap-align: start;
-      border:1px solid rgba(255,255,255,.06);
-      background: rgba(2,6,23,.22);
-      border-radius: 14px;
-      padding:10px;
-    }
-    .round h3{
-      margin:0 0 8px;
-      font-size:12px;
-      color: var(--muted);
-      letter-spacing:.3px;
-      text-transform: uppercase;
-      display:flex; justify-content:space-between; align-items:center;
-    }
-    .match{
-      border:1px solid rgba(255,255,255,.08);
-      background: rgba(15,23,42,.55);
-      border-radius: 14px;
-      padding:10px;
-      margin-bottom:10px;
-    }
-    .match:last-child{margin-bottom:0}
-    .matchTop{
-      display:flex; justify-content:space-between; align-items:center; gap:10px;
-      margin-bottom:8px;
-    }
-    .matchId{
-      font-size:11px; color:var(--muted);
-    }
-    .autoTag{
-      font-size:11px; color: var(--ok);
-      border:1px solid rgba(52,211,153,.35);
-      background: rgba(52,211,153,.12);
-      padding:3px 8px;
-      border-radius:999px;
-      white-space:nowrap;
-    }
-    .slot{
-      display:grid;
-      grid-template-columns: 1fr 52px auto;
-      gap:8px;
-      align-items:center;
-      padding:8px;
-      border-radius: 12px;
-      border:1px solid rgba(255,255,255,.06);
-      background: rgba(2,6,23,.25);
-      margin-bottom:8px;
-    }
-    .slot:last-child{margin-bottom:0}
-    .slot.win{
-      border-color: rgba(52,211,153,.35);
-      background: rgba(52,211,153,.10);
-    }
-    .slot.lose{
-      border-color: rgba(251,113,133,.25);
-      background: rgba(251,113,133,.06);
-      opacity: .92;
-    }
-    .pname{
-      font-weight:800;
-      font-size:13px;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-    }
-    .pname.muted{color: rgba(148,163,184,.8); font-weight:700}
-    .score{
-      width:52px;
-      text-align:center;
-      padding:8px 6px;
-      border-radius: 10px;
-      background: rgba(11,15,23,.55);
-      border:1px solid rgba(255,255,255,.10);
-      color: var(--text);
-      outline:none;
-      font-weight:800;
-    }
-    .slotBtns{display:flex; gap:6px; align-items:center}
-    .btnIcon{
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(148,163,184,.10);
-      color: var(--text);
-      padding:7px 9px;
-      border-radius: 10px;
-      cursor:pointer;
-      font-weight:900;
-      font-size:12px;
-    }
-    .btnIcon:hover{border-color: rgba(148,163,184,.35); background: rgba(148,163,184,.16)}
-    .btnIcon.win{background: rgba(52,211,153,.12)}
-    .btnIcon.win:hover{border-color: rgba(52,211,153,.35); background: rgba(52,211,153,.18)}
-    .btnIcon.clear{background: rgba(251,113,133,.10)}
-    .btnIcon.clear:hover{border-color: rgba(251,113,133,.35); background: rgba(251,113,133,.16)}
-    .note{
-      margin-top:8px;
-      display:flex; gap:8px;
-    }
-    .note input{
-      flex:1;
-      font-size:12px;
-      padding:9px 10px;
-      border-radius: 12px;
-      background: rgba(2,6,23,.35);
-      border:1px solid rgba(255,255,255,.08);
-      color: var(--text);
-      outline:none;
-    }
-    .champion{
-      border:1px solid rgba(96,165,250,.35);
-      background: rgba(96,165,250,.12);
-      border-radius: 14px;
-      padding:10px 12px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .champion b{font-size:14px}
-    .muted{color:var(--muted)}
-    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
-  </style>
+  <title>Tournament App v2</title>
+  <!--
+    Tournament App v2 — Minimal README
+    How to run: open index.html in a browser (offline supported). No build step required.
+    Enable Supabase: open Setup ▸ Online Room, add URL + anon key, then create or join a room. If missing, online features stay hidden.
+    Export PNG/PDF: open Bracket ▸ Share, choose Export PNG or Export PDF. Works offline using client-side rendering.
+  -->
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.5/dist/umd/supabase.min.js"></script>
 </head>
 <body>
-<header>
-  <div class="wrap top">
-    <div>
-      <h1>🏆 Tournament Generator</h1>
-      <div class="subtitle">Single-file, offline. Add names → Generate bracket → click winners later. Auto-advances, handles BYEs, saves locally.</div>
-    </div>
-    <div class="row">
-      <div class="pill">Participants: <b id="statPlayers">0</b></div>
-      <div class="pill">Rounds: <b id="statRounds">0</b></div>
-      <div class="pill">Matches: <b id="statMatches">0</b></div>
-    </div>
-  </div>
-</header>
-
-<main class="wrap">
-  <div class="grid">
-    <!-- Setup -->
-    <section class="card">
-      <div class="hd">
-        <h2>Setup</h2>
-        <button class="btn secondary small" id="btnLoadSample" title="Loads sample players">Load sample</button>
+  <header class="hero">
+    <div class="hero__text">
+      <p class="eyebrow">Tournament App v2</p>
+      <h1>Generate, track, and share brackets quickly.</h1>
+      <p class="lede">Offline-first, mobile-friendly, and ready for large events. Start in Setup, then manage results in Bracket.</p>
+      <div class="instructions">
+        <div>1. Enter teams</div>
+        <div>2. Choose format & settings</div>
+        <div>3. Generate bracket</div>
+        <div>4. Record results</div>
+        <div>5. Share / publish room</div>
       </div>
-      <div class="bd">
-        <div class="two">
-          <div>
-            <label for="tTitle">Tournament name</label>
-            <input id="tTitle" type="text" placeholder="e.g., Friday Night Bracket" />
+    </div>
+    <div class="hero__stats" aria-label="Tournament stats">
+      <div class="pill">Participants <strong id="statPlayers">0</strong></div>
+      <div class="pill">Rounds <strong id="statRounds">0</strong></div>
+      <div class="pill">Matches <strong id="statMatches">0</strong></div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <nav class="tabs" role="tablist" aria-label="Main">
+      <button class="tab is-active" data-tab="setup" aria-selected="true">Setup</button>
+      <button class="tab" data-tab="bracket" aria-selected="false">Bracket</button>
+    </nav>
+
+    <section class="panel" data-panel="setup" role="tabpanel">
+      <div class="panel__grid">
+        <div class="card">
+          <header class="card__header">
+            <div>
+              <p class="eyebrow">Tournament</p>
+              <h2>General settings</h2>
+            </div>
+            <div class="row">
+              <button class="btn ghost" id="btnLoadSample">Load sample</button>
+              <button class="btn ghost" id="btnReset">Reset</button>
+            </div>
+          </header>
+          <div class="card__body">
+            <div class="field-grid">
+              <label>Title
+                <input type="text" id="tTitle" placeholder="Friday Night Bracket" />
+              </label>
+              <label>Format
+                <select id="tFormat">
+                  <option value="single">Single elimination</option>
+                  <option value="double" disabled>Double elimination (coming soon)</option>
+                  <option value="round" disabled>Round robin (placeholder)</option>
+                </select>
+              </label>
+              <label>Seeding
+                <select id="tSeeding">
+                  <option value="as_entered">As entered</option>
+                  <option value="random">Randomize</option>
+                </select>
+              </label>
+              <label>Best of (per match)
+                <select id="tBestOf">
+                  <option value="1">Best of 1</option>
+                  <option value="3">Best of 3</option>
+                  <option value="5">Best of 5</option>
+                </select>
+              </label>
+              <label>Third place match
+                <select id="tThirdPlace">
+                  <option value="off">No</option>
+                  <option value="on">Yes</option>
+                </select>
+              </label>
+              <label>BYE placement
+                <select id="tBye">
+                  <option value="auto">Auto balance</option>
+                  <option value="end">Place at end</option>
+                </select>
+              </label>
+            </div>
+            <label>Participants (one per line)
+              <textarea id="names" placeholder="Alice&#10;Bob&#10;Charlie&#10;Dana"></textarea>
+            </label>
+            <div class="actions">
+              <button class="btn" id="btnGenerate">Generate bracket</button>
+              <button class="btn ghost" id="btnRegen">Regenerate (clears results)</button>
+            </div>
+            <div class="hint">
+              Duplicate and empty entries are ignored. BYEs are added automatically for the next power of two.
+            </div>
           </div>
-          <div>
-            <label for="tSeeding">Seeding</label>
-            <select id="tSeeding">
-              <option value="as_entered">As entered</option>
-              <option value="random">Randomize</option>
-            </select>
+          <footer class="card__footer">
+            <button class="btn ghost" id="btnExport">Export JSON</button>
+            <button class="btn ghost" id="btnImport">Import JSON</button>
+            <button class="btn ghost" id="btnCopy">Copy JSON</button>
+            <button class="btn ghost" id="btnPrint">Print</button>
+          </footer>
+        </div>
+
+        <div class="card">
+          <header class="card__header">
+            <div>
+              <p class="eyebrow">Utilities</p>
+              <h2>Tools</h2>
+            </div>
+          </header>
+          <div class="card__body">
+            <div class="utility-row">
+              <button class="btn ghost" id="btnCoin">Coin flip</button>
+              <button class="btn ghost" id="btnShuffle">Randomize seeding</button>
+              <button class="btn ghost" id="btnUndo">Undo</button>
+              <button class="btn ghost" id="btnRedo">Redo</button>
+            </div>
+            <div class="field-grid">
+              <label>Match defaults: location
+                <input type="text" id="defaultLocation" placeholder="Court 1" />
+              </label>
+              <label>Match defaults: notes
+                <input type="text" id="defaultNotes" placeholder="Optional notes" />
+              </label>
+              <label>Theme
+                <select id="themeSelect">
+                  <option value="dark">Dark</option>
+                  <option value="light">Light</option>
+                  <option value="contrast">High contrast</option>
+                </select>
+              </label>
+              <label>Show seeds
+                <select id="toggleSeeds">
+                  <option value="on">On</option>
+                  <option value="off">Off</option>
+                </select>
+              </label>
+            </div>
+            <div class="callout">Need online viewers? Enable a room below. Supabase is optional and ignored when unconfigured.</div>
           </div>
         </div>
 
-        <div class="sep"></div>
-
-        <label for="names">Participants (one per line)</label>
-        <textarea id="names" placeholder="Alice&#10;Bob&#10;Charlie&#10;Dana"></textarea>
-
-        <div class="sep"></div>
-
-        <div class="two">
-          <div>
-            <button class="btn ok" id="btnGenerate">Generate bracket</button>
-          </div>
-          <div>
-            <button class="btn danger" id="btnReset">Reset (clear everything)</button>
+        <div class="card">
+          <header class="card__header">
+            <div>
+              <p class="eyebrow">Online Room (optional)</p>
+              <h2>Supabase sync</h2>
+            </div>
+          </header>
+          <div class="card__body">
+            <div class="field-grid">
+              <label>Supabase URL
+                <input type="url" id="sbUrl" placeholder="https://xyzcompany.supabase.co" />
+              </label>
+              <label>Supabase anon key
+                <input type="password" id="sbKey" placeholder="anon key" />
+              </label>
+              <label>Room code
+                <input type="text" id="roomCode" placeholder="short code" />
+              </label>
+            </div>
+            <div class="actions">
+              <button class="btn" id="btnCreateRoom">Create room</button>
+              <button class="btn ghost" id="btnJoinRoom">Join room</button>
+              <button class="btn ghost" id="btnLeaveRoom">Disconnect</button>
+            </div>
+            <div class="hint" id="roomStatus">Rooms are disabled until Supabase details are provided.</div>
           </div>
         </div>
-
-        <div class="sep"></div>
-        <div class="hint">
-          Tips:
-          <ul>
-            <li>Duplicates & empty lines are ignored.</li>
-            <li>If players are not a power of 2, <span class="mono">BYE</span> slots are added automatically.</li>
-            <li>To enter results later: click ✅ on the winner. The winner auto-advances.</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="toolbar">
-        <button class="btn secondary" id="btnExport">Export JSON</button>
-        <button class="btn secondary" id="btnImport">Import JSON</button>
-        <button class="btn secondary" id="btnCopy">Copy JSON</button>
-        <button class="btn secondary" id="btnPrint">Print</button>
       </div>
     </section>
 
-    <!-- Bracket -->
-    <section class="card">
-      <div class="hd">
-        <h2>Bracket</h2>
-        <div class="row">
-          <button class="btn secondary small" id="btnRegen" title="Regenerate bracket from names & settings (keeps nothing)">Re-generate</button>
-        </div>
-      </div>
-
-      <div class="bracketWrap">
-        <div class="bracketHead">
-          <div class="bracketTitle">
-            <div class="name" id="viewTitle">—</div>
-            <div class="meta" id="viewMeta">Add names and generate.</div>
+    <section class="panel is-hidden" data-panel="bracket" role="tabpanel">
+      <div class="card bracket-card">
+        <header class="card__header card__header--split">
+          <div>
+            <p class="eyebrow">Live bracket</p>
+            <h2 id="viewTitle">No bracket yet</h2>
+            <p class="hint" id="viewMeta">Add names in Setup and generate a bracket.</p>
           </div>
-          <div id="championBox" style="display:none" class="champion">
-            <span>Champion: <b id="championName">—</b></span>
-            <span class="muted" id="championMeta"></span>
+          <div class="row">
+            <button class="btn ghost" id="btnClearResults">Clear results</button>
+            <button class="btn ghost" id="btnCompact">Compact view</button>
+            <button class="btn ghost" id="btnZoomOut">-</button>
+            <button class="btn ghost" id="btnZoomIn">+</button>
           </div>
+        </header>
+        <div class="bracket-toolbar">
+          <div class="search">
+            <input type="search" id="searchInput" placeholder="Search participants" aria-label="Search participants" />
+          </div>
+          <div class="hint">Click a participant to set the winner. Add scores or notes to each match.</div>
         </div>
-
-        <div id="bracket" class="bracket" aria-label="Tournament bracket"></div>
-      </div>
-
-      <div class="toolbar">
-        <div class="hint" style="margin-right:auto">
-          Click <b>✅</b> to set winner. Click <b>↺</b> to clear a match result.
+        <div class="bracketWrap">
+          <div id="bracket" class="bracket" aria-live="polite"></div>
+          <div class="empty" id="emptyState">No bracket yet. Generate from the Setup tab.</div>
         </div>
-        <button class="btn secondary" id="btnClearResults">Clear all results</button>
+        <footer class="card__footer card__footer--grid">
+          <div>
+            <p class="eyebrow">Share</p>
+            <button class="btn" id="btnExportPng">Export PNG</button>
+            <button class="btn ghost" id="btnExportPdf">Export PDF</button>
+          </div>
+          <div>
+            <p class="eyebrow">Match scheduling</p>
+            <div class="hint">Edit time/location/notes inside each match card.</div>
+          </div>
+          <div>
+            <p class="eyebrow">Room link</p>
+            <button class="btn ghost" id="btnCopyRoom">Copy link</button>
+          </div>
+        </footer>
       </div>
     </section>
-  </div>
-</main>
+  </main>
 
-<div class="toast" id="toast"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-<script>
-(() => {
-  const STORAGE_KEY = "tourney_v1_state";
-
-  const $ = (id) => document.getElementById(id);
-
-  const ui = {
-    tTitle: $("tTitle"),
-    tSeeding: $("tSeeding"),
-    names: $("names"),
-    btnGenerate: $("btnGenerate"),
-    btnRegen: $("btnRegen"),
-    btnReset: $("btnReset"),
-    btnLoadSample: $("btnLoadSample"),
-    btnExport: $("btnExport"),
-    btnImport: $("btnImport"),
-    btnCopy: $("btnCopy"),
-    btnPrint: $("btnPrint"),
-    btnClearResults: $("btnClearResults"),
-
-    bracket: $("bracket"),
-    viewTitle: $("viewTitle"),
-    viewMeta: $("viewMeta"),
-    championBox: $("championBox"),
-    championName: $("championName"),
-    championMeta: $("championMeta"),
-
-    statPlayers: $("statPlayers"),
-    statRounds: $("statRounds"),
-    statMatches: $("statMatches"),
-    toast: $("toast"),
-  };
-
-  function toast(msg){
-    ui.toast.textContent = msg;
-    ui.toast.classList.add("show");
-    clearTimeout(toast._t);
-    toast._t = setTimeout(() => ui.toast.classList.remove("show"), 1600);
-  }
-
-  function nextPow2(n){
-    let p = 1;
-    while (p < n) p <<= 1;
-    return p;
-  }
-
-  function sanitizeNames(text){
-    const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-    const seen = new Set();
-    const out = [];
-    for (const n of lines){
-      const key = n.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(n);
-    }
-    return out;
-  }
-
-  function shuffle(arr){
-    const a = arr.slice();
-    for (let i=a.length-1; i>0; i--){
-      const j = Math.floor(Math.random()*(i+1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  }
-
-  function buildTemplate(participants){
-    // returns template rounds with matchCount per round
-    const size = nextPow2(participants.length);
-    const rounds = Math.log2(size) || 0;
-    const template = [];
-    let matches = size / 2;
-    for (let r=0; r<rounds; r++){
-      template.push({ roundIndex: r, matchesCount: matches });
-      matches = Math.max(1, matches / 2);
-    }
-    return { size, rounds, template };
-  }
-
-  function makeBlankResults(rounds, template){
-    return Array.from({length: rounds}, (_,r) =>
-      Array.from({length: template[r].matchesCount}, () => ({
-        winnerSide: null, // 1 or 2
-        score1: "",
-        score2: "",
-        note: ""
-      }))
-    );
-  }
-
-  function defaultState(){
-    return {
-      version: 1,
-      title: "My Tournament",
-      seeding: "as_entered",
-      participantsText: "",
-      participants: [],
-      seeds: [],
-      size: 0,
-      rounds: 0,
-      results: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  let state = defaultState();
-
-  function save(){
-    state.updatedAt = new Date().toISOString();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }
-
-  function load(){
-    try{
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return false;
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== "object") return false;
-      state = { ...defaultState(), ...parsed };
-      return true;
-    }catch{
-      return false;
-    }
-  }
-
-  function computeBracketFromState(){
-    // returns { roundsData: [{roundName, matches:[{p1,p2,winner,loser,auto}]}], champion }
-    const participants = state.seeds.slice();
-    const size = state.size || 0;
-    const rounds = state.rounds || 0;
-    if (!size || !rounds) return { roundsData: [], champion: null };
-
-    // Fill seeds with BYEs to reach power-of-2 size
-    const seeds = participants.slice();
-    while (seeds.length < size) seeds.push("BYE");
-
-    // slots for a round are participants in match order
-    let slots = seeds;
-
-    const roundsData = [];
-    const results = state.results;
-
-    for (let r=0; r<rounds; r++){
-      const matchCount = slots.length / 2;
-      const roundMatches = [];
-
-      const nextSlots = Array(matchCount).fill(null); // winners go here
-
-      for (let m=0; m<matchCount; m++){
-        const p1 = slots[m*2] ?? "";
-        const p2 = slots[m*2+1] ?? "";
-
-        const res = results?.[r]?.[m] ?? { winnerSide:null, score1:"", score2:"", note:"" };
-
-        // auto-advance logic
-        let auto = false;
-        let winner = null;
-        let loser = null;
-
-        const p1Playable = p1 && p1 !== "BYE";
-        const p2Playable = p2 && p2 !== "BYE";
-
-        // If one side is BYE and the other is real => auto winner
-        if (p1Playable && !p2Playable){
-          auto = true; winner = p1; loser = p2 || "BYE";
-        } else if (!p1Playable && p2Playable){
-          auto = true; winner = p2; loser = p1 || "BYE";
-        } else if (!p1Playable && !p2Playable){
-          // both empty/BYE => nothing
-          winner = null; loser = null;
-        } else {
-          // Both real players -> honor winnerSide if valid
-          if (res.winnerSide === 1){
-            winner = p1; loser = p2;
-          } else if (res.winnerSide === 2){
-            winner = p2; loser = p1;
-          } else {
-            winner = null; loser = null;
-          }
-        }
-
-        // Validate winner is a real participant (not BYE)
-        if (winner === "BYE") winner = null;
-
-        if (winner){
-          nextSlots[m] = winner;
-        } else {
-          nextSlots[m] = ""; // unknown yet
-        }
-
-        roundMatches.push({
-          p1, p2,
-          score1: res.score1 ?? "",
-          score2: res.score2 ?? "",
-          note: res.note ?? "",
-          winner,
-          loser,
-          auto
-        });
-      }
-
-      roundsData.push({
-        roundIndex: r,
-        roundName: roundLabel(r, rounds),
-        matches: roundMatches
-      });
-
-      // Build slots for next round by pairing nextSlots
-      slots = [];
-      for (let i=0; i<nextSlots.length; i++){
-        slots.push(nextSlots[i]);
-      }
-      // Convert list of winners into match slots (pair in order)
-      // next round expects slots length to be power-of-2 divided by 2^r
-      // At this point slots length == matchCount, which is correct list of participants for next round.
-      // We need to expand to [p1,p2,p1,p2...] by pairing adjacent winners.
-      // Example: if matchCount=4 -> participants=[w0,w1,w2,w3] -> slots=[w0,w1,w2,w3] then matchCountNext=2 uses [w0,w1],[w2,w3]
-      // That matches our current structure already (it pairs adjacent).
-    }
-
-    // Champion is the only slot left when final is decided
-    const finalRound = roundsData[roundsData.length - 1];
-    let champion = null;
-    if (finalRound && finalRound.matches.length === 1){
-      champion = finalRound.matches[0].winner || null;
-    }
-    return { roundsData, champion };
-  }
-
-  function roundLabel(r, total){
-    const remaining = total - r;
-    if (remaining === 1) return "Final";
-    if (remaining === 2) return "Semi-finals";
-    if (remaining === 3) return "Quarter-finals";
-    return `Round ${r+1}`;
-  }
-
-  function recomputeAndRender(){
-    // Update stats
-    ui.statPlayers.textContent = String(state.participants.length || 0);
-    ui.statRounds.textContent = String(state.rounds || 0);
-
-    let totalMatches = 0;
-    if (state.rounds && state.size){
-      let matches = state.size / 2;
-      for (let i=0; i<state.rounds; i++){
-        totalMatches += matches;
-        matches = Math.max(1, matches / 2);
-      }
-    }
-    ui.statMatches.textContent = String(totalMatches);
-
-    // Header meta
-    ui.viewTitle.textContent = state.title?.trim() || "—";
-    if (!state.rounds){
-      ui.viewMeta.textContent = "Add names and generate.";
-    } else {
-      ui.viewMeta.textContent =
-        `${state.participants.length} players • ${state.rounds} rounds • seeding: ${state.seeding === "random" ? "random" : "as entered"}`;
-    }
-
-    // Bracket data
-    const { roundsData, champion } = computeBracketFromState();
-
-    // Champion box
-    if (champion){
-      ui.championBox.style.display = "";
-      ui.championName.textContent = champion;
-      ui.championMeta.textContent = "🏆";
-    } else {
-      ui.championBox.style.display = "none";
-    }
-
-    // Render
-    ui.bracket.innerHTML = "";
-    if (!roundsData.length){
-      const empty = document.createElement("div");
-      empty.className = "hint";
-      empty.style.padding = "10px";
-      empty.textContent = "No bracket yet. Paste participants on the left and click “Generate bracket”.";
-      ui.bracket.appendChild(empty);
-      return;
-    }
-
-    roundsData.forEach((round) => {
-      const col = document.createElement("div");
-      col.className = "round";
-
-      const h3 = document.createElement("h3");
-      const left = document.createElement("span");
-      left.textContent = round.roundName;
-      const right = document.createElement("span");
-      right.className = "mono";
-      right.textContent = `R${round.roundIndex+1}`;
-      h3.appendChild(left);
-      h3.appendChild(right);
-      col.appendChild(h3);
-
-      round.matches.forEach((match, mIndex) => {
-        const box = document.createElement("div");
-        box.className = "match";
-
-        const top = document.createElement("div");
-        top.className = "matchTop";
-
-        const id = document.createElement("div");
-        id.className = "matchId mono";
-        id.textContent = `M${mIndex+1}`;
-
-        top.appendChild(id);
-
-        if (match.auto){
-          const tag = document.createElement("div");
-          tag.className = "autoTag";
-          tag.textContent = "AUTO (BYE)";
-          top.appendChild(tag);
-        }
-
-        box.appendChild(top);
-
-        // slot 1
-        box.appendChild(renderSlot(round.roundIndex, mIndex, 1, match));
-        // slot 2
-        box.appendChild(renderSlot(round.roundIndex, mIndex, 2, match));
-
-        // note
-        const noteRow = document.createElement("div");
-        noteRow.className = "note";
-        const noteInput = document.createElement("input");
-        noteInput.placeholder = "Optional note (e.g., court 2, time 7:30, etc.)";
-        noteInput.value = match.note || "";
-        noteInput.addEventListener("input", () => {
-          ensureResultsShape();
-          state.results[round.roundIndex][mIndex].note = noteInput.value;
-          save();
-        });
-        noteRow.appendChild(noteInput);
-        box.appendChild(noteRow);
-
-        col.appendChild(box);
-      });
-
-      ui.bracket.appendChild(col);
-    });
-  }
-
-  function renderSlot(r, m, side, match){
-    const isSide1 = side === 1;
-    const pname = isSide1 ? match.p1 : match.p2;
-
-    const slot = document.createElement("div");
-    slot.className = "slot";
-
-    const res = state.results?.[r]?.[m] ?? { winnerSide:null, score1:"", score2:"" };
-    const winnerSide = res.winnerSide;
-
-    const winner = match.winner;
-    const loser = match.loser;
-
-    const isWinner = winner && winner === pname;
-    const isLoser = loser && loser === pname && !isWinner;
-
-    if (isWinner) slot.classList.add("win");
-    if (isLoser) slot.classList.add("lose");
-
-    const nameEl = document.createElement("div");
-    nameEl.className = "pname";
-    if (!pname || pname === "BYE"){
-      nameEl.classList.add("muted");
-      nameEl.textContent = pname ? pname : "—";
-    } else {
-      nameEl.textContent = pname;
-    }
-
-    const score = document.createElement("input");
-    score.className = "score";
-    score.inputMode = "numeric";
-    score.placeholder = "—";
-    score.value = isSide1 ? (match.score1 ?? "") : (match.score2 ?? "");
-
-    score.addEventListener("input", () => {
-      ensureResultsShape();
-      if (isSide1) state.results[r][m].score1 = score.value;
-      else state.results[r][m].score2 = score.value;
-      save();
-    });
-
-    const btns = document.createElement("div");
-    btns.className = "slotBtns";
-
-    const winBtn = document.createElement("button");
-    winBtn.className = "btnIcon win";
-    winBtn.title = "Set as winner";
-    winBtn.textContent = "✅";
-
-    const clearBtn = document.createElement("button");
-    clearBtn.className = "btnIcon clear";
-    clearBtn.title = "Clear match result";
-    clearBtn.textContent = "↺";
-
-    winBtn.disabled = !pname || pname === "BYE";
-    clearBtn.disabled = false;
-
-    winBtn.addEventListener("click", () => {
-      ensureResultsShape();
-      // If match is auto, do nothing (auto-advance already)
-      if (match.auto) return;
-      // Only allow if both players exist and are not BYE
-      const p1Playable = match.p1 && match.p1 !== "BYE";
-      const p2Playable = match.p2 && match.p2 !== "BYE";
-      if (!(p1Playable && p2Playable)) return;
-
-      state.results[r][m].winnerSide = side;
-      save();
-      // After setting winner, we should also clear any downstream results that become invalid.
-      normalizeResults();
-      save();
-      recomputeAndRender();
-    });
-
-    clearBtn.addEventListener("click", () => {
-      ensureResultsShape();
-      state.results[r][m].winnerSide = null;
-      save();
-      normalizeResults(); // clear invalid downstream picks
-      save();
-      recomputeAndRender();
-    });
-
-    btns.appendChild(winBtn);
-    btns.appendChild(clearBtn);
-
-    slot.appendChild(nameEl);
-    slot.appendChild(score);
-    slot.appendChild(btns);
-
-    return slot;
-  }
-
-  function ensureResultsShape(){
-    const { template, rounds } = buildTemplate(state.participants);
-    if (!state.results || state.results.length !== rounds){
-      state.results = makeBlankResults(rounds, template);
-      return;
-    }
-    // ensure per-round match counts
-    for (let r=0; r<rounds; r++){
-      const need = template[r].matchesCount;
-      if (!state.results[r] || state.results[r].length !== need){
-        state.results[r] = Array.from({length: need}, () => ({ winnerSide:null, score1:"", score2:"", note:"" }));
-      }
-      for (let m=0; m<need; m++){
-        state.results[r][m] = {
-          winnerSide: state.results[r][m]?.winnerSide ?? null,
-          score1: state.results[r][m]?.score1 ?? "",
-          score2: state.results[r][m]?.score2 ?? "",
-          note: state.results[r][m]?.note ?? ""
-        };
-      }
-    }
-  }
-
-  function normalizeResults(){
-    // Recompute bracket round by round; if a stored winnerSide points to an empty/BYE participant, clear it.
-    const { roundsData } = computeBracketFromState();
-    // We must rebuild using current seeds to detect invalid results.
-    // We'll iterate like computeBracketFromState but also validate winnerSide.
-    const participants = state.seeds.slice();
-    const size = state.size || 0;
-    const rounds = state.rounds || 0;
-    if (!size || !rounds) return;
-
-    // Fill seeds to size
-    const seeds = participants.slice();
-    while (seeds.length < size) seeds.push("BYE");
-    let slots = seeds;
-
-    for (let r=0; r<rounds; r++){
-      const matchCount = slots.length / 2;
-      for (let m=0; m<matchCount; m++){
-        const p1 = slots[m*2] ?? "";
-        const p2 = slots[m*2+1] ?? "";
-        const res = state.results[r][m];
-
-        const p1Playable = p1 && p1 !== "BYE";
-        const p2Playable = p2 && p2 !== "BYE";
-
-        // auto case: winnerSide should be null (optional), but keep it clean
-        if (p1Playable && !p2Playable){
-          res.winnerSide = null;
-          slots[m] = p1;
-          continue;
-        }
-        if (!p1Playable && p2Playable){
-          res.winnerSide = null;
-          slots[m] = p2;
-          continue;
-        }
-
-        // both not playable
-        if (!p1Playable && !p2Playable){
-          res.winnerSide = null;
-          slots[m] = "";
-          continue;
-        }
-
-        // both playable: validate stored winnerSide
-        if (res.winnerSide === 1 && !p1Playable) res.winnerSide = null;
-        if (res.winnerSide === 2 && !p2Playable) res.winnerSide = null;
-
-        if (res.winnerSide === 1) slots[m] = p1;
-        else if (res.winnerSide === 2) slots[m] = p2;
-        else slots[m] = "";
-      }
-
-      // Next round slots are the winners list; next pairing will use adjacent winners.
-      // Current 'slots' is winners list (length == matchCount), correct for next iteration.
-    }
-  }
-
-  function generate(keepResults=false){
-    const title = ui.tTitle.value.trim() || "My Tournament";
-    const seeding = ui.tSeeding.value;
-
-    const participants = sanitizeNames(ui.names.value);
-    if (participants.length < 2){
-      toast("Add at least 2 participants.");
-      return;
-    }
-
-    const seeds = (seeding === "random") ? shuffle(participants) : participants.slice();
-    const { size, rounds, template } = buildTemplate(participants);
-
-    state.title = title;
-    state.seeding = seeding;
-    state.participantsText = ui.names.value;
-    state.participants = participants;
-    state.seeds = seeds;
-    state.size = size;
-    state.rounds = rounds;
-
-    if (!keepResults){
-      state.results = makeBlankResults(rounds, template);
-    } else {
-      ensureResultsShape();
-      normalizeResults();
-    }
-
-    save();
-    recomputeAndRender();
-    toast("Bracket generated.");
-  }
-
-  function clearEverything(){
-    state = defaultState();
-    localStorage.removeItem(STORAGE_KEY);
-
-    ui.tTitle.value = state.title;
-    ui.tSeeding.value = state.seeding;
-    ui.names.value = "";
-
-    recomputeAndRender();
-    toast("Reset done.");
-  }
-
-  function clearResults(){
-    if (!state.rounds) return;
-    const { template, rounds } = buildTemplate(state.participants);
-    state.results = makeBlankResults(rounds, template);
-    save();
-    recomputeAndRender();
-    toast("All results cleared.");
-  }
-
-  function exportJson(){
-    const json = JSON.stringify(state, null, 2);
-    const blob = new Blob([json], {type:"application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    const safeName = (state.title || "tournament").replace(/[^\w\-]+/g,"_").slice(0,40);
-    a.download = `${safeName}_bracket.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-    toast("Exported JSON.");
-  }
-
-  async function copyJson(){
-    const json = JSON.stringify(state, null, 2);
-    try{
-      await navigator.clipboard.writeText(json);
-      toast("Copied JSON to clipboard.");
-    }catch{
-      toast("Copy failed (browser permission).");
-    }
-  }
-
-  function importJson(){
-    const raw = prompt("Paste exported JSON here:");
-    if (!raw) return;
-    try{
-      const obj = JSON.parse(raw);
-      if (!obj || typeof obj !== "object") throw new Error("Invalid JSON");
-
-      state = { ...defaultState(), ...obj };
-
-      // hydrate UI
-      ui.tTitle.value = state.title || "My Tournament";
-      ui.tSeeding.value = state.seeding || "as_entered";
-      ui.names.value = state.participantsText || (state.participants || []).join("\n");
-
-      // validate shape
-      if (Array.isArray(state.participants)){
-        const { size, rounds, template } = buildTemplate(state.participants);
-        state.size = size;
-        state.rounds = rounds;
-        ensureResultsShape();
-        normalizeResults();
-      }
-
-      save();
-      recomputeAndRender();
-      toast("Imported JSON.");
-    }catch(e){
-      toast("Invalid JSON.");
-    }
-  }
-
-  function printView(){
-    // Simple print-friendly mode: open new window with minimal styles
-    const { roundsData, champion } = computeBracketFromState();
-    const title = state.title || "Tournament";
-    const now = new Date().toLocaleString();
-
-    const html = `
-<!doctype html>
-<html>
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>${escapeHtml(title)} - Print</title>
-<style>
-  body{font-family: Arial, sans-serif; margin:20px; color:#111}
-  h1{margin:0 0 6px}
-  .meta{color:#444; margin-bottom:14px}
-  .grid{display:flex; gap:14px; align-items:flex-start; overflow:auto}
-  .round{border:1px solid #ddd; border-radius:10px; padding:10px; min-width:240px}
-  .round h2{font-size:12px; text-transform:uppercase; letter-spacing:.4px; margin:0 0 10px; color:#444}
-  .match{border:1px solid #eee; border-radius:10px; padding:10px; margin-bottom:10px}
-  .row{display:flex; justify-content:space-between; gap:10px}
-  .p{font-weight:700}
-  .muted{color:#888}
-  .win{background:#eafff3}
-  .lose{background:#ffeef1}
-</style>
-</head>
-<body>
-  <h1>${escapeHtml(title)}</h1>
-  <div class="meta">${escapeHtml(now)} • Players: ${state.participants.length} • Champion: ${escapeHtml(champion || "—")}</div>
-  <div class="grid">
-    ${roundsData.map(r => `
-      <div class="round">
-        <h2>${escapeHtml(r.roundName)}</h2>
-        ${r.matches.map(m => `
-          <div class="match">
-            <div class="row ${m.winner===m.p1?'win':(m.loser===m.p1?'lose':'')}">
-              <div class="p">${escapeHtml(m.p1 || "—")}</div>
-              <div>${escapeHtml(m.score1 || "")}</div>
-            </div>
-            <div class="row ${m.winner===m.p2?'win':(m.loser===m.p2?'lose':'')}">
-              <div class="p">${escapeHtml(m.p2 || "—")}</div>
-              <div>${escapeHtml(m.score2 || "")}</div>
-            </div>
-            ${m.note ? `<div class="muted" style="margin-top:8px">${escapeHtml(m.note)}</div>` : ""}
-          </div>
-        `).join("")}
-      </div>
-    `).join("")}
-  </div>
-</body>
-</html>`;
-
-    const w = window.open("", "_blank");
-    if (!w) { toast("Popup blocked."); return; }
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    w.print();
-  }
-
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
-
-  // Wire UI
-  ui.btnGenerate.addEventListener("click", () => {
-    ui.tTitle.value = ui.tTitle.value || "My Tournament";
-    generate(false);
-  });
-
-  ui.btnRegen.addEventListener("click", () => {
-    // re-generate bracket but KEEP results as much as possible (re-validates)
-    if (!state.participants.length){
-      toast("Generate a bracket first.");
-      return;
-    }
-    generate(true);
-    toast("Re-generated (kept valid results).");
-  });
-
-  ui.btnReset.addEventListener("click", () => {
-    const ok = confirm("Reset will clear the bracket, results, and saved data. Continue?");
-    if (!ok) return;
-    clearEverything();
-  });
-
-  ui.btnClearResults.addEventListener("click", () => {
-    const ok = confirm("Clear all match results? (names & bracket remain)");
-    if (!ok) return;
-    clearResults();
-  });
-
-  ui.btnLoadSample.addEventListener("click", () => {
-    ui.tTitle.value = "Sample Tournament";
-    ui.tSeeding.value = "random";
-    ui.names.value = [
-      "Alice","Bob","Charlie","Dana","Efe","Fatma","Gokhan","Hakan","Ipek","Jale","Kerem"
-    ].join("\n");
-    toast("Sample loaded.");
-  });
-
-  ui.btnExport.addEventListener("click", exportJson);
-  ui.btnImport.addEventListener("click", importJson);
-  ui.btnCopy.addEventListener("click", copyJson);
-  ui.btnPrint.addEventListener("click", printView);
-
-  // Keep state in sync with inputs
-  ui.tTitle.addEventListener("input", () => {
-    state.title = ui.tTitle.value;
-    save();
-    recomputeAndRender();
-  });
-  ui.tSeeding.addEventListener("change", () => {
-    state.seeding = ui.tSeeding.value;
-    save();
-    recomputeAndRender();
-  });
-  ui.names.addEventListener("input", () => {
-    state.participantsText = ui.names.value;
-    // don't auto-regenerate bracket on every keystroke; just update count
-    const p = sanitizeNames(ui.names.value);
-    ui.statPlayers.textContent = String(p.length);
-  });
-
-  // Initial load
-  const had = load();
-  if (had){
-    ui.tTitle.value = state.title || "My Tournament";
-    ui.tSeeding.value = state.seeding || "as_entered";
-    ui.names.value = state.participantsText || (state.participants || []).join("\n");
-    // Validate / normalize
-    if (Array.isArray(state.participants) && state.participants.length >= 2){
-      const { size, rounds } = buildTemplate(state.participants);
-      state.size = size;
-      state.rounds = rounds;
-      ensureResultsShape();
-      normalizeResults();
-      save();
-    }
-  } else {
-    ui.tTitle.value = state.title;
-    ui.tSeeding.value = state.seeding;
-  }
-  recomputeAndRender();
-})();
-</script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
