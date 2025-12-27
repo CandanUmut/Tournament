@@ -62,7 +62,7 @@
                 <select id="tFormat">
                   <option value="single">Single elimination</option>
                   <option value="double" disabled>Double elimination (coming soon)</option>
-                  <option value="round" disabled>Round robin (placeholder)</option>
+                  <option value="round">Round robin</option>
                 </select>
               </label>
               <label>Seeding
@@ -83,6 +83,16 @@
                   <option value="off">No</option>
                   <option value="on">Yes</option>
                 </select>
+              </label>
+              <label class="stacked">Double round robin
+                <input type="checkbox" id="tDoubleRound" />
+              </label>
+              <label class="stacked">Points (win/draw/loss)
+                <div class="inline-inputs">
+                  <input type="number" id="pointsWin" min="0" value="3" aria-label="Win points" />
+                  <input type="number" id="pointsDraw" min="0" value="1" aria-label="Draw points" />
+                  <input type="number" id="pointsLoss" min="0" value="0" aria-label="Loss points" />
+                </div>
               </label>
               <label>BYE placement
                 <select id="tBye">
@@ -200,6 +210,7 @@
           </div>
           <div class="hint">Click a participant to set the winner. Add scores or notes to each match.</div>
         </div>
+        <div class="standings" id="standings" aria-live="polite"></div>
         <div class="bracketWrap">
           <div id="bracket" class="bracket" aria-live="polite"></div>
           <div class="empty" id="emptyState">No bracket yet. Generate from the Setup tab.</div>
